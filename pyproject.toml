@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ovos-ww-plugin-wakewordlab"
+dynamic = ["version"]
+description = "OVOS wake word plugin using wakewordlab"
+license = {text = "Apache-2.0"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
+authors = [{name = "JarbasAI", email = "jarbasai@mailfence.com"}]
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "wakewordlab",
+    "numpy",
+    "ovos-plugin-manager",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.entry-points."opm.wake_word"]
+ovos-ww-plugin-wakewordlab = "ovos_ww_plugin_wakewordlab:WakewordLabHotwordPlugin"
+
+[project.urls]
+Homepage = "https://github.com/TigreGotico/ovos-ww-plugin-wakewordlab"
+
+[tool.setuptools.dynamic]
+version = {attr = "version.__version__"}
+
+[tool.setuptools.packages.find]
+where = ["."]
