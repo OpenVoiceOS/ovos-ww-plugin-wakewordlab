@@ -42,3 +42,10 @@ print(wakewordlab.list_models())
 ```
 
 Models are downloaded and cached in `~/.cache/wakewordlab/models/` on first use.
+
+## Acknowledgements
+
+This project is developed as part of [OVOS](https://openvoiceos.org) and supported by the
+[NGI0 Commons Fund](https://nlnet.nl/commonsfund/), a fund established by
+[NLnet](https://nlnet.nl) with financial support from the European Commission's
+[Next Generation Internet](https://ngi.eu) programme.

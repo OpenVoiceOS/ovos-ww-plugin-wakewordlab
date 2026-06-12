@@ -28,7 +28,7 @@ test = ["pytest"]
 ovos-ww-plugin-wakewordlab = "ovos_ww_plugin_wakewordlab:WakewordLabHotwordPlugin"
 
 [project.urls]
-Homepage = "https://github.com/TigreGotico/ovos-ww-plugin-wakewordlab"
+Homepage = "https://github.com/OpenVoiceOS/ovos-ww-plugin-wakewordlab"
 
 [tool.setuptools.dynamic]
 version = {attr = "version.__version__"}
