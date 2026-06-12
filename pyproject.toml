@@ -22,7 +22,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest"]
+test = ["pytest", "numpy"]
 
 [project.entry-points."opm.wake_word"]
 ovos-ww-plugin-wakewordlab = "ovos_ww_plugin_wakewordlab:WakewordLabHotwordPlugin"

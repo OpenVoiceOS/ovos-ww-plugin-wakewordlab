@@ -1,81 +1,50 @@
 """End-to-end tests for ovos-ww-plugin-wakewordlab.
 
-Requires: wakewordlab, edge-tts, ffmpeg, numpy.
+Bundled fixture WAVs (16 kHz mono int16) are in tests/fixtures/:
+  wake.wav     — "hey jarvis" (en-US-GuyNeural via edge-tts)
+  negative.wav — "good morning please play some music"
 
-Strategy
---------
-1. Synthesise a WAV containing the wake word phrase ("hey jarvis") via edge-tts.
-2. Feed the PCM bytes through the plugin's update() in realistic chunk sizes.
-3. Assert found_wake_word() triggers at least once.
-4. Repeat with silence and an unrelated utterance and assert no trigger.
+No TTS or network access required at test time.
 """
 
-import os
-import subprocess
 import wave
+from pathlib import Path
 
 import numpy as np
 import pytest
+
+FIXTURES = Path(__file__).parent / "fixtures"
+
+SAMPLE_RATE = 16000
+CHUNK_SAMPLES = 1600       # 100 ms — typical OVOS VAD chunk size
+CHUNK_BYTES = CHUNK_SAMPLES * 2
+
+WAKE_WORD = "hey_jarvis"
+WAKE_PHRASE = "hey jarvis"
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-SAMPLE_RATE = 16000
-CHUNK_SAMPLES = 1600          # 100 ms — typical OVOS chunk size
-CHUNK_BYTES = CHUNK_SAMPLES * 2  # int16
-
-WAKE_WORD = "hey_jarvis"
-WAKE_PHRASE = "hey jarvis"
-NEGATIVE_PHRASE = "good morning, please play some music"
-TTS_VOICE = "en-US-GuyNeural"
-
-
-def _skip_if_missing(*tools: str) -> None:
-    for tool in tools:
-        try:
-            subprocess.run([tool, "--version"], capture_output=True, timeout=5, check=False)
-        except FileNotFoundError:
-            pytest.skip(f"{tool} not found")
-
-
-def _tts_to_wav(text: str, voice: str, path: str, timeout: int = 60) -> None:
-    mp3 = path.replace(".wav", ".mp3")
-    subprocess.run(
-        ["edge-tts", "--voice", voice, "--text", text, "--write-media", mp3],
-        check=True, timeout=timeout, capture_output=True,
-    )
-    subprocess.run(
-        [
-            "ffmpeg", "-y", "-i", mp3,
-            "-ar", str(SAMPLE_RATE), "-ac", "1",
-            "-f", "wav", path,
-        ],
-        check=True, timeout=30, capture_output=True,
-    )
-    os.unlink(mp3)
-
-
-def _wav_to_pcm_int16(path: str) -> bytes:
-    with wave.open(path, "rb") as wf:
-        assert wf.getsampwidth() == 2, "expected 16-bit PCM"
-        assert wf.getnchannels() == 1, "expected mono"
+def _wav_to_pcm_int16(path: Path) -> bytes:
+    with wave.open(str(path), "rb") as wf:
+        assert wf.getsampwidth() == 2, f"{path.name}: expected 16-bit PCM"
+        assert wf.getnchannels() == 1, f"{path.name}: expected mono"
+        assert wf.getframerate() == SAMPLE_RATE, f"{path.name}: expected {SAMPLE_RATE} Hz"
         return wf.readframes(wf.getnframes())
 
 
 def _silence_pcm(seconds: float = 2.0) -> bytes:
-    n = int(SAMPLE_RATE * seconds)
-    return (np.zeros(n, dtype=np.int16)).tobytes()
+    return (np.zeros(int(SAMPLE_RATE * seconds), dtype=np.int16)).tobytes()
 
 
 def _feed_plugin(plugin, pcm: bytes) -> bool:
-    """Feed all PCM bytes through update() in CHUNK_BYTES pieces; return True if any detection."""
+    """Stream PCM through update() in CHUNK_BYTES pieces; return True on any detection."""
     detected = False
     for i in range(0, len(pcm), CHUNK_BYTES):
         chunk = pcm[i : i + CHUNK_BYTES]
         if len(chunk) < CHUNK_BYTES:
-            # pad last chunk to full size
             chunk = chunk + b"\x00" * (CHUNK_BYTES - len(chunk))
         plugin.update(chunk)
         if plugin.found_wake_word():
@@ -86,26 +55,6 @@ def _feed_plugin(plugin, pcm: bytes) -> bool:
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
-
-@pytest.fixture(scope="session")
-def tools_available():
-    _skip_if_missing("edge-tts", "ffmpeg")
-
-
-@pytest.fixture(scope="session")
-def audio_clips(tmp_path_factory, tools_available):
-    d = tmp_path_factory.mktemp("wakewordlab_audio")
-    wake_path = str(d / "wake.wav")
-    negative_path = str(d / "negative.wav")
-
-    _tts_to_wav(WAKE_PHRASE, TTS_VOICE, wake_path)
-    _tts_to_wav(NEGATIVE_PHRASE, TTS_VOICE, negative_path)
-
-    return {
-        "wake": wake_path,
-        "negative": negative_path,
-    }
-
 
 @pytest.fixture(scope="session")
 def plugin():
@@ -133,12 +82,9 @@ class TestPluginLifecycle:
 
     def test_no_detection_on_silence(self, plugin):
         plugin.reset()
-        pcm = _silence_pcm(seconds=2.0)
-        detected = _feed_plugin(plugin, pcm)
-        assert not detected, "Silence should not trigger wake word"
+        assert not _feed_plugin(plugin, _silence_pcm(2.0))
 
     def test_found_wake_word_resets_after_read(self, plugin):
-        """found_wake_word() must return False on the second call without new audio."""
         plugin.reset()
         plugin._detected = True
         assert plugin.found_wake_word() is True
@@ -152,57 +98,41 @@ class TestPluginLifecycle:
 
 
 class TestE2EDetection:
-    def test_wake_word_detected(self, plugin, audio_clips):
-        """Feeding the wake phrase should trigger at least one detection."""
+    def test_wake_word_detected(self, plugin):
         plugin.reset()
-        pcm = _wav_to_pcm_int16(audio_clips["wake"])
-        detected = _feed_plugin(plugin, pcm)
-        assert detected, (
-            f"Expected detection for '{WAKE_PHRASE}' but got none. "
-            "Check model threshold or TTS pronunciation."
+        pcm = _wav_to_pcm_int16(FIXTURES / "wake.wav")
+        assert _feed_plugin(plugin, pcm), (
+            f"Expected detection for '{WAKE_PHRASE}' but got none."
         )
 
-    def test_negative_phrase_not_detected(self, plugin, audio_clips):
-        """An unrelated utterance should not trigger the wake word."""
+    def test_negative_phrase_not_detected(self, plugin):
         plugin.reset()
-        pcm = _wav_to_pcm_int16(audio_clips["negative"])
-        detected = _feed_plugin(plugin, pcm)
-        assert not detected, (
-            f"False positive: '{NEGATIVE_PHRASE}' triggered wake word detection."
+        pcm = _wav_to_pcm_int16(FIXTURES / "negative.wav")
+        assert not _feed_plugin(plugin, pcm), (
+            "False positive: negative phrase triggered wake word detection."
         )
 
-    def test_scores_printed(self, plugin, audio_clips):
-        """Print raw scores to help tune threshold."""
-        import wakewordlab
-        import numpy as np
+    def test_scores_printed(self, plugin):
+        """Print peak scores and threshold — useful for PR review."""
+        def _pcm_to_float32(path: Path) -> np.ndarray:
+            raw = _wav_to_pcm_int16(path)
+            return np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
 
-        def _pcm_to_float32(path: str) -> np.ndarray:
-            pcm = _wav_to_pcm_int16(path)
-            return np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768.0
-
-        # Score the full 1-second window with max signal
-        wake_audio = _pcm_to_float32(audio_clips["wake"])
-        neg_audio = _pcm_to_float32(audio_clips["negative"])
-
-        # Grab the window that contains peak energy
         def _peak_score(audio: np.ndarray) -> float:
-            window = plugin.WINDOW_SAMPLES
             best = 0.0
-            for start in range(0, max(1, len(audio) - window), plugin.STRIDE_SAMPLES):
+            stride = plugin.STRIDE_SAMPLES
+            window = plugin.WINDOW_SAMPLES
+            for start in range(0, max(1, len(audio) - window), stride):
                 s = plugin.detector.score(audio[start : start + window])
                 if s > best:
                     best = s
             return best
 
-        wake_score = _peak_score(wake_audio)
-        neg_score = _peak_score(neg_audio)
+        wake_score = _peak_score(_pcm_to_float32(FIXTURES / "wake.wav"))
+        neg_score = _peak_score(_pcm_to_float32(FIXTURES / "negative.wav"))
         threshold = plugin.detector.threshold
 
-        print(f"\n[e2e wakewordlab] wake_peak_score={wake_score:.4f}")
-        print(f"[e2e wakewordlab] neg_peak_score={neg_score:.4f}")
-        print(f"[e2e wakewordlab] threshold={threshold:.4f}")
-        print(f"[e2e wakewordlab] wake_detected={wake_score>=threshold}  neg_detected={neg_score>=threshold}")
-
+        print(f"\n[e2e] wake_peak={wake_score:.4f}  neg_peak={neg_score:.4f}  threshold={threshold:.4f}")
         assert wake_score > neg_score, (
             f"Wake score {wake_score:.4f} should exceed negative score {neg_score:.4f}"
         )
