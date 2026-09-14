@@ -9,3 +9,7 @@ jobs:
   license_check:
     uses: OpenVoiceOS/gh-automations/.github/workflows/license-check.yml@dev
     secrets: inherit
+    with:
+      # wakewordlab==0.1.1 ships wheels only up to cp312; on newer Python its
+      # sdist is built instead and fails (missing wakewordlab/_loader/loader.pyx).
+      python_version: '3.12'
