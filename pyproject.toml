@@ -33,5 +33,8 @@ Homepage = "https://github.com/OpenVoiceOS/ovos-ww-plugin-wakewordlab"
 [tool.setuptools.dynamic]
 version = {attr = "version.__version__"}
 
+[tool.setuptools]
+py-modules = ["version"]
+
 [tool.setuptools.packages.find]
 where = ["."]

@@ -12,3 +12,4 @@ jobs:
     with:
       python_version: '3.11'
       coverage_source: 'ovos_ww_plugin_wakewordlab'
+      test_path: 'tests/'
