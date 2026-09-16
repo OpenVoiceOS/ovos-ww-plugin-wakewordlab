@@ -2,6 +2,18 @@
 
 An OVOS wake word plugin that uses [wakewordlab](https://github.com/ubermorgenland/wakewordlab). Wakewordlab runs compact neural wake word models with a Silero VAD pre-filter, so the plugin can detect wake words while it uses little CPU.
 
+## Licence: non-commercial use only
+
+This plugin is Apache-2.0. The `wakewordlab` library that it installs is not.
+The wakewordlab licence permits personal, academic and other non-commercial use only.
+Commercial use needs a separate written licence from Ubermorgen Land.
+This restriction applies to you when you install this plugin.
+Read the [wakewordlab LICENSE](https://github.com/ubermorgenland/wakewordlab/blob/main/LICENSE) before you use the plugin in a product, a service or a for-profit organisation.
+
+The OVOS licence check has an exception for `wakewordlab` in `.github/workflows/license_check.yml`.
+The exception does not make the licence compatible with Apache-2.0.
+It records that we know about the restriction and that this README tells users about it.
+
 ## Install
 
 ```bash

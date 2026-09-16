@@ -9,3 +9,14 @@ jobs:
   license_check:
     uses: OpenVoiceOS/gh-automations/.github/workflows/license-check.yml@dev
     secrets: inherit
+    with:
+      # wakewordlab 0.1.1 has wheels up to cp312 only. On a newer interpreter
+      # uv builds its sdist, and that sdist does not build.
+      python_version: '3.12'
+      # Known exception, not an approval. wakewordlab ships no licence
+      # metadata, and its LICENSE file permits non-commercial use only. This
+      # is not compatible with Apache-2.0. The plugin exists to wrap it, so
+      # README.md and pyproject.toml tell users about the restriction.
+      # pilosus matches the "name==version" string, so the pattern allows a
+      # version suffix.
+      exclude_packages: '(?i:^wakewordlab([=<>!~ @;].*)?$)'
