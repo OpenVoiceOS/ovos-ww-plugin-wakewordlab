@@ -32,7 +32,8 @@ class WakewordLabHotwordPlugin(HotWordEngine):
                  config: Optional[Dict[str, Any]] = None,
                  lang: str = "en-us"):
         config = config or {}
-        super().__init__(key_phrase, config, lang)
+        super().__init__(key_phrase, config)
+        self.lang = lang
 
         if wakewordlab is None:
             raise ImportError("wakewordlab is not installed. Run: pip install wakewordlab")
