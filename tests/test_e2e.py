@@ -80,6 +80,21 @@ class TestPluginLifecycle:
         assert p is not None
         p.stop()
 
+    def test_lang_is_kept_although_the_base_does_not_take_it(self):
+        # HotWordEngine.__init__ takes (key_phrase, config). Passing lang on
+        # to it raised TypeError before any assertion in this file could run,
+        # so the plugin keeps lang itself. This pins that it is still kept,
+        # rather than quietly dropped along with the argument.
+        pytest.importorskip("wakewordlab")
+        from ovos_ww_plugin_wakewordlab import WakewordLabHotwordPlugin
+        p = WakewordLabHotwordPlugin(key_phrase=WAKE_PHRASE,
+                                     config={"model": WAKE_WORD},
+                                     lang="pt-pt")
+        try:
+            assert p.lang == "pt-pt"
+        finally:
+            p.stop()
+
     def test_no_detection_on_silence(self, plugin):
         plugin.reset()
         assert not _feed_plugin(plugin, _silence_pcm(2.0))
