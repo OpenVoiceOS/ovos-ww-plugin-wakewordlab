@@ -19,11 +19,21 @@ readme = "README.md"
 # so this plugin cannot be installed on 3.13 or newer at all. The bound is
 # a fact about the dependency, not a preference; widen it when wakewordlab
 # ships wheels or a buildable sdist.
-requires-python = ">=3.9,<3.13"
+# The lower bound matches the CI matrix (3.10, 3.11, 3.12). wakewordlab does
+# ship cp39 wheels, so 3.9 would probably work, but nothing tests it and a
+# claim nothing tests is not a claim.
+requires-python = ">=3.10,<3.13"
 dependencies = [
-    "wakewordlab",
+    # one published release, 0.1.1. The floor names the version this plugin
+    # is tested against rather than accepting whatever is on the index.
+    "wakewordlab>=0.1.1",
     "numpy",
-    "ovos-plugin-manager",
+    # 2.2.0 is the floor because 2.1.1 and older import pkg_resources at
+    # module scope, which setuptools no longer ships: on python 3.11
+    # `import ovos_plugin_manager.templates.hotwords` raises
+    # ModuleNotFoundError: No module named 'pkg_resources'. Measured at the
+    # boundary: 2.1.1 fails, 2.2.0 imports.
+    "ovos-plugin-manager>=2.2.0,<3.0.0",
 ]
 
 [project.optional-dependencies]
