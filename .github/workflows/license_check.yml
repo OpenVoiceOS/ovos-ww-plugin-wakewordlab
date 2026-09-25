@@ -9,3 +9,9 @@ jobs:
   license_check:
     uses: OpenVoiceOS/gh-automations/.github/workflows/license-check.yml@dev
     secrets: inherit
+    with:
+      # the shared workflow defaults python_version to 3.14, where wakewordlab
+      # has no wheel and its sdist does not build, so the job failed before
+      # reading a single licence. requires-python bars 3.13 and newer for the
+      # same reason; this names a version the package supports.
+      python_version: '3.12'

@@ -14,7 +14,12 @@ classifiers = [
 ]
 authors = [{name = "JarbasAI", email = "jarbasai@mailfence.com"}]
 readme = "README.md"
-requires-python = ">=3.9"
+# wakewordlab publishes wheels for cp39 to cp312 only, and its 0.1.1 sdist
+# cannot build ("wakewordlab/_loader/loader.pyx doesn't match any files"),
+# so this plugin cannot be installed on 3.13 or newer at all. The bound is
+# a fact about the dependency, not a preference; widen it when wakewordlab
+# ships wheels or a buildable sdist.
+requires-python = ">=3.9,<3.13"
 dependencies = [
     "wakewordlab",
     "numpy",

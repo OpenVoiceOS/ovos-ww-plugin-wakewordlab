@@ -12,3 +12,7 @@ jobs:
     with:
       python_version: '3.11'
       coverage_source: 'ovos_ww_plugin_wakewordlab'
+      # the shared workflow defaults test_path to 'test/', and this tree uses
+      # 'tests/'. Without this the job ends at "ERROR: file or directory not
+      # found: test/" and reports a coverage failure that names no test.
+      test_path: 'tests'
