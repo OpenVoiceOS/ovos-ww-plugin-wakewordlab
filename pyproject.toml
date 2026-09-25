@@ -5,7 +5,11 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ovos-ww-plugin-wakewordlab"
 dynamic = ["version"]
-description = "OVOS wake word plugin using wakewordlab"
+description = "OVOS wake word plugin using wakewordlab. The wakewordlab dependency is licensed for non-commercial use only."
+# Stays a plain SPDX string: this package's own code is Apache-2.0, and a
+# scanner parses this field. The warning about wakewordlab's non-commercial
+# terms belongs in the description above, the README and the licence check's
+# exclude_packages comment, not in an identifier other tools read.
 license = {text = "Apache-2.0"}
 classifiers = [
     "Programming Language :: Python :: 3",
