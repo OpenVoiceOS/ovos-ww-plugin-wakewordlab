@@ -18,16 +18,37 @@ classifiers = [
 ]
 authors = [{name = "JarbasAI", email = "jarbasai@mailfence.com"}]
 readme = "README.md"
-# wakewordlab publishes wheels for cp39 to cp312 only, and its 0.1.1 sdist
-# cannot build ("wakewordlab/_loader/loader.pyx doesn't match any files"),
-# so this plugin cannot be installed on 3.13 or newer at all. The bound is
-# a fact about the dependency, not a preference; widen it when wakewordlab
-# ships wheels or a buildable sdist.
-requires-python = ">=3.9,<3.13"
+# The two bounds are here for DIFFERENT reasons; do not read one as the other.
+#
+# <3.13 is a fact about the dependency. wakewordlab publishes wheels for cp39
+# to cp312 only, and its 0.1.1 sdist cannot build
+# ("wakewordlab/_loader/loader.pyx doesn't match any files"), so this plugin
+# cannot be installed on 3.13 or newer at all. Widen it when wakewordlab ships
+# wheels or a buildable sdist.
+#
+# >=3.10 is a POLICY choice, not a fact: nothing here requires 3.10.
+# wakewordlab 0.1.1 declares requires_python ">=3.9", ovos-plugin-manager 2.2.0
+# declares none, and the suite passes on 3.9 at these floors. The bound says
+# this project supports what build_tests.yml tests, which is 3.10, 3.11 and
+# 3.12. Lower it and extend the matrix together, or not at all.
+requires-python = ">=3.10,<3.13"
 dependencies = [
-    "wakewordlab",
+    # wakewordlab has exactly one release, 0.1.1, so an unbounded floor lets a
+    # lowest-direct resolve pick nothing this plugin was ever tested against.
+    "wakewordlab>=0.1.1",
     "numpy",
-    "ovos-plugin-manager",
+    # 2.2.0 is the first release that imports under setuptools 84 and newer;
+    # only 2.2.0a1 sits between it and 2.1.1, so no lower stable floor exists.
+    # Earlier releases fail, but NOT all for one reason, and the difference
+    # matters to anyone deciding later whether the floor can be lowered:
+    # 2.1.1 raises ModuleNotFoundError: No module named 'pkg_resources' (from
+    # ovos_plugin_manager/utils/__init__.py), while 0.0.1a1, the release a
+    # lowest-direct resolve actually reaches, raises ImportError: cannot import
+    # name 'search_mycroft_core_location' from 'ovos_utils.system'.
+    # A lower floor is a false claim of support: a free resolver picks the
+    # newest and works, while a lowest-direct install, a constraints file or a
+    # downstream pin takes the minimum and cannot import.
+    "ovos-plugin-manager>=2.2.0",
 ]
 
 [project.optional-dependencies]
